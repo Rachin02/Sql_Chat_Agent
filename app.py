@@ -8,6 +8,11 @@ from langchain_classic.callbacks.streamlit import StreamlitCallbackHandler
 from langchain_classic.agents.agent_types import AgentType
 from langchain_community.utilities import SQLDatabase
 from sqlalchemy import create_engine
+import os
+
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+
+
 
 LOCALDB = "USE_LOCALDB"
 MYSQL = "USE_MYSQL"
@@ -61,7 +66,8 @@ else:
 
 
 toolkit = SQLDatabaseToolkit(llm = model, db = db)
-sql_agent = create_sql_agent(llm = model, toolkit = toolkit, verbose = True, agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION )
+sql_agent = create_sql_agent(llm = model, toolkit = toolkit, verbose = True, agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION, max_iterations=20 )
+sql_agent.handle_parsing_errors = True
 
 if "messages" not in st.session_state or st.sidebar.button("Clear History"):
     st.session_state["messages"] = [{"role":"assistant","content":"How can I help you?"}]
