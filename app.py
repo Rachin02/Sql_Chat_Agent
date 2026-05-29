@@ -19,27 +19,6 @@ os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"] # remove or comment 
 LOCALDB = "USE_LOCALDB"
 MYSQL = "USE_MYSQL"
 
-def clear_history():
-    if "messages" not in st.session_state or st.sidebar.button("Clear History"):
-          st.session_state["messages"] = [{"role":"assistant","content":"How can I help you?"}]
-
-    st.sidebar.markdown(
-        """
-            <div style="
-                background-color: #8dc6ff;
-                color: black;
-                padding: 7px;
-                border-radius: 10px;
-                text-align: center;
-                font-size: 13px;
-                font-weight: 200;
-            ">
-                Developed by Rachin
-            </div>
-
-        """,
-        unsafe_allow_html= True
-    )
 
 st.title("Chat with SQL Database")
 st.set_page_config(page_title = "SQLchat:Agent", page_icon = "📚")
@@ -59,16 +38,41 @@ else:
 
 api_key = st.sidebar.text_input( label="Enter your API key", placeholder="GPT API key", type="password")
 
+if "messages" not in st.session_state:
+    st.session_state["messages"] = [{"role":"assistant","content":"How can I help you?"}]
+
+if st.sidebar.button("Clear History"):
+    st.session_state["messages"] = [{"role":"assistant","content":"How can I help you?"}]
+
+st.sidebar.markdown(
+    """
+        <div style="
+            background-color: #8dc6ff;
+            color: black;
+            padding: 7px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 200;
+        ">
+            Developed by Rachin
+        </div>
+
+    """,
+    unsafe_allow_html= True
+)
+
+
 if not db_uri:
     st.info("Please enter the database information and uri")
 if not api_key:
     st.info("Please provide your GPT api key")
     st.stop()
 
-
+# llm model
 model = ChatOpenAI(model = "gpt-4o-mini", api_key = api_key, streaming = True)
 
-
+# sql connection
 @st.cache_resource(ttl = "2h")
 def config_db(db_uri, mysql_host= None, mysql_user = None, mysql_pass = None, mysql_db = None):
     if db_uri == LOCALDB:
@@ -83,10 +87,9 @@ def config_db(db_uri, mysql_host= None, mysql_user = None, mysql_pass = None, my
 if db_uri == MYSQL:
     if not (mysql_host and mysql_user and mysql_pass and mysql_db):
             st.error("Please provide all MySQL connection details.")
-            clear_history()
             st.stop()
     else:
-            db = config_db(db_uri, mysql_host, mysql_user, mysql_pass, mysql_db)
+              db = config_db(db_uri, mysql_host, mysql_user, mysql_pass, mysql_db)
 else:
     db = config_db(db_uri)
 
@@ -95,7 +98,6 @@ toolkit = SQLDatabaseToolkit(llm = model, db = db)
 sql_agent = create_sql_agent(llm = model, toolkit = toolkit, verbose = True, agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION, max_iterations=20 )
 sql_agent.handle_parsing_errors = True
 
-clear_history()
 
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
