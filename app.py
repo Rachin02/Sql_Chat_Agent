@@ -9,14 +9,37 @@ from langchain_classic.agents.agent_types import AgentType
 from langchain_community.utilities import SQLDatabase
 from sqlalchemy import create_engine
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"] # remove or comment this line if you are using in local
 
 
 
 LOCALDB = "USE_LOCALDB"
 MYSQL = "USE_MYSQL"
 
+def clear_history():
+    if "messages" not in st.session_state or st.sidebar.button("Clear History"):
+          st.session_state["messages"] = [{"role":"assistant","content":"How can I help you?"}]
+
+    st.sidebar.markdown(
+        """
+            <div style="
+                background-color: #8dc6ff;
+                color: black;
+                padding: 7px;
+                border-radius: 10px;
+                text-align: center;
+                font-size: 13px;
+                font-weight: 200;
+            ">
+                Developed by Rachin
+            </div>
+
+        """,
+        unsafe_allow_html= True
+    )
 
 st.title("Chat with SQL Database")
 st.set_page_config(page_title = "SQLchat:Agent", page_icon = "📚")
@@ -40,6 +63,7 @@ if not db_uri:
     st.info("Please enter the database information and uri")
 if not api_key:
     st.info("Please provide your GPT api key")
+    st.stop()
 
 
 model = ChatOpenAI(model = "gpt-4o-mini", api_key = api_key, streaming = True)
@@ -52,15 +76,17 @@ def config_db(db_uri, mysql_host= None, mysql_user = None, mysql_pass = None, my
         creator = lambda: sqlite3.connect(f"file:{db_path}?mode = ro", uri = True)
         return SQLDatabase(create_engine(f"sqlite:///", creator = creator))
     elif db_uri == MYSQL:
-        if not (mysql_host and mysql_user and mysql_pass and mysql_db):
-            st.error("Please provide all MySQL connection details.")
-            st.stop()
         return SQLDatabase(create_engine(f"mysql+mysqlconnector://{mysql_user}:{mysql_pass}@{mysql_host}/{mysql_db}"))
 
 
 
 if db_uri == MYSQL:
-    db = config_db(db_uri, mysql_host, mysql_user, mysql_pass, mysql_db)
+    if not (mysql_host and mysql_user and mysql_pass and mysql_db):
+            st.error("Please provide all MySQL connection details.")
+            clear_history()
+            st.stop()
+    else:
+            db = config_db(db_uri, mysql_host, mysql_user, mysql_pass, mysql_db)
 else:
     db = config_db(db_uri)
 
@@ -69,13 +95,10 @@ toolkit = SQLDatabaseToolkit(llm = model, db = db)
 sql_agent = create_sql_agent(llm = model, toolkit = toolkit, verbose = True, agent_type = AgentType.ZERO_SHOT_REACT_DESCRIPTION, max_iterations=20 )
 sql_agent.handle_parsing_errors = True
 
-if "messages" not in st.session_state or st.sidebar.button("Clear History"):
-    st.session_state["messages"] = [{"role":"assistant","content":"How can I help you?"}]
-
+clear_history()
 
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
-
 
 
 user_input = st.chat_input("Ask Question")
@@ -90,22 +113,3 @@ if user_input:
         response = sql_agent.run(user_input, callbacks= [streamlit_callback])
         st.session_state.messages.append({"role":"assistant","content":response})
         st.write(response)
-
-
-st.sidebar.markdown(
-    """
-        <div style="
-            background-color: #8dc6ff;
-            color: black;
-            padding: 7px;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 200;
-        ">
-            Developed by Rachin
-        </div>
-
-    """,
-    unsafe_allow_html= True
-)
