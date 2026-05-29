@@ -12,7 +12,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"] # remove or comment this line if you are using in local
+# os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"] # remove or comment this line if you are using in local
 
 
 
@@ -86,6 +86,8 @@ def config_db(db_uri, mysql_host= None, mysql_user = None, mysql_pass = None, my
 
 if db_uri == MYSQL:
     if not (mysql_host and mysql_user and mysql_pass and mysql_db):
+            # remove below st.info(...) code if you are trying to use from your local machine.
+            st.info(" 'Connect to your MySQL Database' This option will not work on cloud. The project is design for local uses and now the live app is hosted in streamlit server. so when you try to connect to the localhost, the system will try to use streamlit server localhost. and then encounter an error. To use this project correctly clone the repo to your local device and try to use it")
             st.error("Please provide all MySQL connection details.")
             st.stop()
     else:
