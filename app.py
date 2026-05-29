@@ -86,8 +86,9 @@ def config_db(db_uri, mysql_host= None, mysql_user = None, mysql_pass = None, my
 
 if db_uri == MYSQL:
     if not (mysql_host and mysql_user and mysql_pass and mysql_db):
-            # remove below st.info(...) code if you are trying to use from your local machine.
+            # remove below st.info(...) code if you are using in your local machine
             st.info(" 'Connect to your MySQL Database' This option will not work using this link. because streamlit server is used to live the project. So to work with this option downlod the project and configure the system and use it")
+            st.error("Please provide all MySQL connection details.")
             st.stop()
     else:
               db = config_db(db_uri, mysql_host, mysql_user, mysql_pass, mysql_db)
